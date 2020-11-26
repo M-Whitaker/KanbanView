@@ -4,7 +4,6 @@ VERSION=2.6.3
 MAIN=things3_kanban
 APP=things3_app
 SERVER=things3_api
-SERVER_PORT=15000
 CLI=things3_cli
 SRC_CORE=things3
 SRC_TEST=tests

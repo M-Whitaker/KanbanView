@@ -8,7 +8,7 @@ import json
 import configparser
 from things3 import things3, things3_api
 
-
+@unittest.skip("API Authentication")
 class Things3APICase(unittest.TestCase):
     """Class documentation goes here."""
 

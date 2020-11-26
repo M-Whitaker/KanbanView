@@ -199,7 +199,7 @@ const requestParallel = function (url, method) {
       console.log('Error: ' + request.status)
     }
   }
-  request.open('GET', `${url}?mode=${mode}`, true)
+  request.open('GET', `${url}?mode=${mode}&api_key=${config.api_key}`, true)
   request.send()
 }
 
@@ -711,6 +711,7 @@ async function savePreferences () { // eslint-disable-line no-unused-vars
   await requestSequencial('config/STAT_DAYS', 'PUT', document.getElementById('pref-statdays').value).then(readPreferences())
   await requestSequencial('config/API_EXPOSE', 'PUT', document.getElementById('pref-expose').checked).then(readPreferences())
   await requestSequencial('config/KANBANVIEW_PORT', 'PUT', document.getElementById('pref-port').value).then(readPreferences())
+  await requestSequencial('config/KANBANVIEW_API_KEY', 'PUT', document.getElementById('pref-api-key').value).then(readPreferences())
 }
 
 async function showPreferences () { // eslint-disable-line no-unused-vars
@@ -729,12 +730,14 @@ async function showPreferences () { // eslint-disable-line no-unused-vars
                  rowAdd(null, 'Eisenhower "D" Tag: <input class="pref-input" id="pref-D" onchange="javascript:savePreferences();">', 'Tasks with this tag will be shown in the D quadrant of the Eisenhower view (not urgent and not important).', '', '', '') +
                  rowAdd(null, 'Days for history view: <input class="pref-input" id="pref-statdays" onchange="javascript:savePreferences();">', 'How many days the statistic view should consider (currently the app has to be restarted to take this preference to take effect).', '', '', '')
   const prefAPI = rowAdd(null, 'Expose API to network: <input class="pref-input" id="pref-expose" type="checkbox" onchange="javascript:savePreferences();">', 'If enabled, you can open the GUI by devices within your network, e.g. via an iPad by opening this link and saving it to the home screen: <i class="fa fa-external-link-alt"></i> <a id="host" href="#" target="_blank"></a>.', '', '', '') +
-                  rowAdd(null, 'PORT: <input class="pref-input" id="pref-port" onchange="javascript:savePreferences();">', 'TCP port the API is listening at.', '', '', '')
+                  rowAdd(null, 'PORT: <input class="pref-input" id="pref-port" onchange="javascript:savePreferences();">', 'TCP port the API is listening at.', '', '', '') +
+                  rowAdd(null, 'API KEY: <input class="pref-input" id="pref-api-key" onchange="javascript:savePreferences();">', 'The API Key set by the server.', '', '', '')
 
   prefs.innerHTML = columnAdd('Database', 'Database', '', '', 'color2', '', prefDB, 'database') +
                     columnAdd('API', 'API', '', '', 'color3', '', prefAPI, 'wifi')
 
   await readPreferences()
+  console.warn(config)
   document.getElementById('pref-mit').value = config.tag_mit
   document.getElementById('pref-waiting').value = config.tag_waiting
   document.getElementById('pref-cleanup').value = config.tag_cleanup
@@ -744,6 +747,7 @@ async function showPreferences () { // eslint-disable-line no-unused-vars
   document.getElementById('pref-D').value = config.D
   document.getElementById('pref-statdays').value = config.statdays
   document.getElementById('pref-expose').checked = config.api_expose
+  document.getElementById('pref-api-key').value = config.api_key
   document.getElementById('pref-port').value = config.api_port
   document.getElementById('host').innerHTML = config.api_url
   document.getElementById('host').href = config.api_url
@@ -760,6 +764,7 @@ async function readPreferences () {
   await requestSequencial('config/STAT_DAYS').then(function (data) { config.statdays = data.response })
   await requestSequencial('config/API_EXPOSE').then(function (data) { config.api_expose = (data.response.toLowerCase() === 'true') })
   await requestSequencial('config/KANBANVIEW_PORT').then(function (data) { config.api_port = data.response })
+  await requestSequencial('config/KANBANVIEW_API_KEY').then(function (data) { config.api_key = data.response })
   await requestSequencial('api/url').then(function (data) { config.api_url = data.response })
 }
 

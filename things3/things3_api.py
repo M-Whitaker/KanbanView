@@ -15,9 +15,10 @@ __email__ = "alex@willner.ws"
 __status__ = "Development"
 
 import sys
-from os import getcwd
+from os import getcwd, environ
 import json
 import socket
+from functools import wraps
 from flask import Flask
 from flask import Response
 from flask import request
@@ -28,11 +29,23 @@ from things3.things3 import Things3
 class Things3API():
     """API Wrapper for the simple read-only API for Things 3."""
 
+    def token_authentication(func):
+        """ Basic Auth Decorator """
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            self = args[0]
+            if request.args.get('api_key') == self.key:
+                return func(*args, **kwargs)
+            else:
+                return Response(response=json.dumps({"error": "Not Authenticated"}), status=403, content_type='application/json')
+        return decorated_function
+
     PATH = getcwd() + '/resources/'
     DEFAULT = 'kanban.html'
     test_mode = "task"
     host = 'localhost'
-    port = 15000
+    port = int(environ.get('PORT', 33507))
+    client_key = "PLEASE CONFIGURE API KEY"
 
     def on_get(self, url=DEFAULT):
         """Handles other GET requests"""
@@ -83,6 +96,7 @@ class Things3API():
             self.things3.set_config(key, value)
         return Response()
 
+    @token_authentication
     def tag(self, tag, area=None):
         """Get specific tag."""
         self.mode_selector()
@@ -94,6 +108,7 @@ class Things3API():
         data = json.dumps(data)
         return Response(response=data, content_type='application/json')
 
+    @token_authentication
     def api(self, command):
         """Return database as JSON strings."""
         if command in self.things3.functions:
@@ -103,7 +118,6 @@ class Things3API():
             self.things3.mode_task()
             data = json.dumps(data)
             return Response(response=data, content_type='application/json')
-
         data = json.dumps(self.things3.get_not_implemented())
         return Response(response=data,
                         content_type='application/json',
@@ -114,6 +128,7 @@ class Things3API():
         fqdn = f'{socket.gethostname()}.local'
         return f"http://{fqdn}:{self.port}"
 
+    @token_authentication
     def api_filter(self, mode, uuid):
         """Filter view by specific modifiers"""
         if mode == "area" and uuid != "":
@@ -140,10 +155,16 @@ class Things3API():
         self.port = cfg if cfg else self.port
         self.things3.set_config('KANBANVIEW_PORT', self.port)
 
+        cfg = self.things3.get_from_config(port, 'KANBANVIEW_API_KEY')
+        self.client_key = cfg if cfg else self.client_key
+        self.things3.set_config('KANBANVIEW_API_KEY', self.client_key)
+
         cfg = self.things3.get_from_config(expose, 'API_EXPOSE')
         self.host = '0.0.0.0' if (str(cfg).lower() == 'true') else 'localhost'
         self.things3.set_config('KANBANVIEW_HOST', self.host)
         self.things3.set_config('API_EXPOSE', str(cfg).lower() == 'true')
+
+        self.key = environ.get('API_KEY', "33507")
 
         self.flask = Flask(__name__)
         self.flask.add_url_rule('/config/<key>', view_func=self.config_get)
@@ -167,9 +188,7 @@ class Things3API():
         print(f"Serving at http://{self.host}:{self.port} ...")
 
         try:
-            self.flask_context = make_server(
-                self.host, self.port, self.flask, threaded=True)
-            self.flask_context.serve_forever()
+            self.flask_context = self.flask.run(threaded=True, host='0.0.0.0', port=self.port)
         except KeyboardInterrupt:
             print("Shutting down...")
             sys.exit(0)
